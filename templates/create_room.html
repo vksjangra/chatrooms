@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Create Room
+{% endblock %}
+
+{% block main %}
+
+    <form action="/create_room" method="post">
+        <div class="mb-3">
+            <input type="text" autofocus autocomplete="off" required name="name" id="name" placeholder="Chatroom Name" class="form-control mx-auto w-auto">
+        </div>
+        <div class="mb-3">
+            <button class="btn btn-primary" type="submit">Create Room</button>
+        </div>
+    </form>
+
+{% endblock %}

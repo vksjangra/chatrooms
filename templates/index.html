@@ -1,0 +1,245 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Home
+{% endblock %}
+
+{% block main %}
+
+<div id="user_id" style="display: none;">{{session["user_id"]}}</div>
+
+<div class="modal modal-xl" data-bs-theme="dark" id="chatbox">
+    <section>
+        <div class="container py-5">
+            <div class="row d-flex justify-content-center">
+                <div class="col-md-8 col-lg-9 col-xl-10">
+
+                    <div class="modal-dialog">
+                        <div class="modal-content modal-dialog-scrollable">
+                            
+                            <div class="modal-header" style="display: none;">
+                                <h6 class="modal-title room-name"></h6>
+                            </div>
+
+                            <div class="card" id="chat1" style="border-radius: 10px;">
+                                <button type="button" class="btn btn-primary see-all-messages">See all messages</button>
+                                <div class="card-header d-flex justify-content-center align-items-center p-3 bg-info text-white border-bottom-0">
+                                    <p class="mb-0 fw-bold">Live chat</p>
+                                    <div class="text-end">
+                                <button type="button" class="btn btn-danger close-chat" data-bs-dismiss="modal">Close</button>
+                            </div>
+                                </div>
+                                <div class="card-body">
+                                    
+                                    <div class="modal-body">
+                                        <div id="messages"></div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <input style="width: 80%;" type="text" id="message" class="form form-control mx-3 d-inline"
+                                            placeholder="Message...">
+                                        <button type="button" id="send" class="btn btn-primary btn-sm inline-block">Send</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% if chatrooms %}
+<h2>Available chatrooms:</h2>
+<table class="table table-striped table-dark ">
+    <tbody>
+        {% for chatroom in chatrooms %}
+        <tr>
+            <td><strong><span class="bold">{{chatroom[1]}}</span></strong></td>
+            {% if session["user_id"] %}
+            <td>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#chatbox"
+                    value="{{chatroom[1]}}" onclick="joinRoom(this)">
+                    Join
+                </button>
+            </td>
+            {% if chatroom[2] == user_id %}
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirm_delete"
+                        value="{{chatroom[1]}}" onclick="deleteRoom(this)">
+                        Delete
+                    </button>
+                </td>
+            {% else %}
+                <td></td>
+            {% endif %}
+        {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+
+{% else %}
+{% if session["user_id"] %}
+<h2 class="mb-5">Create a Chatroom</h2>
+<form action="/create_room" method="post">
+    <div class="mb-3">
+        <input type="text" autofocus autocomplete="off" required name="name" id="name" placeholder="Chatroom Name"
+            class="form-control mx-auto w-auto">
+    </div>
+    <div class="mb-3">
+        <button class="btn btn-primary" type="submit">Create Room</button>
+    </div>
+</form>
+{% else %}
+<h5 class="mb-5 mt-5">New here? <a href="/register">Click to register</a></h5>
+<h5>Already registered? <a href="/login">Click to log in</a></h5>
+{% endif %}
+{% endif %}
+
+
+
+
+<div class="modal modal" id="confirm_delete">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <p class="mb-3 mt-3">Do you want to permanently delete this room?</p>
+                <div class="mb-3">
+                    <form action="delete" method="post">
+                        <input type="text" name="delete-room" id="delete-room" hidden>
+                        <button class="btn btn-danger" type="submit">
+                            Yes
+                        </button>
+                    </form>
+                </div>
+                <div>
+                    <button class="btn-primary btn" data-bs-dismiss="modal">
+                        No
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script type="text/javascript">
+
+    const session_user_id = document.querySelector("#user_id").textContent;
+
+    const socket = io({ autoConnect: false });
+
+    const joinRoom = (element) => {
+
+        if (!socket.connected) {
+            socket.connect();
+            socket.on("connect", () => {
+                console.log("Connected to socket manually");
+            });
+            socket.emit("join_room", {
+                room: element.value
+            });
+        } else {
+            socket.emit("join_room", {
+                room: element.value
+            });
+        }
+        console.log(element.value);
+        console.log("Join a room");
+        document.querySelector(".room-name").textContent = element.value;
+    };
+
+    document.addEventListener("hidden.bs.modal", event => {
+        const room_element = document.querySelector(".room-name");
+        const room = room_element.textContent;
+        room_element.textContent = ("");
+        console.log("Room " + room + " left.");
+        const leaveRoom = (room) => {
+            console.log(room);
+        };
+        socket.emit("leave_room", {
+            room: room
+        });
+
+        const messages = document.querySelector("#messages");
+        messages.innerHTML = "";
+    });
+
+    const messages = document.querySelector("#messages");
+
+    const create_message = (name, message, user_id, timestamp = new Date()) => {
+
+        
+        let content = `
+
+            <div class="d-flex flex-row justify-content-start mb-4">
+              <div class="p-3 me-3 border bg-body-tertiary" style="border-radius: 15px;">
+                <p class="small mb-0"><strong>${name}: </strong>${message}</p>
+                </div>
+                <p class="text-muted small" style="font-size: 9px !important;">${new Date(timestamp).toLocaleString()}</p>
+              <img src="https://ui-avatars.com/api/?name=${name}&background=random&color=fff"
+                alt="avatar 1" style="width: 45px; height: 100%; border-radius: 50%;">
+            </div>
+
+            `;
+            
+
+        if (user_id == session_user_id) {
+            content = `
+
+                <div class="d-flex flex-row justify-content-end mb-4">
+                    <img src="https://ui-avatars.com/api/?name=${name}&background=random&color=fff"
+                        alt="avatar 1" style="width: 45px; height: 100%; border-radius: 50%;">
+                        <p class="text-muted small" style="font-size: 9px !important;">${new Date(timestamp).toLocaleString()}</p>
+                    <div class="p-3 ms-3" style="border-radius: 15px; background-color: rgba(57, 192, 237,.2);">
+                        <p class="small mb-0"><strong>${name}: </strong>${message}</p>
+                    </div>
+                </div>
+            
+            `;
+        };
+        
+        messages.innerHTML += content;
+        messages.scrollIntoView(false);
+    };
+
+    socket.on("message", data => {
+        console.log("message received", data.message);
+        create_message(data.name, data.message, data.user_id, data.timestamp);
+    });
+
+    document.querySelector("#send").addEventListener("click", (event) => {
+        const message_element = document.querySelector("#message");
+        const message = message_element.value;
+        const room_element = document.querySelector(".room-name");
+        const room = room_element.textContent;
+
+        socket.emit("new_message", {
+            msg: message,
+            room: room
+        });
+
+        message_element.value = "";
+    });
+
+
+    const deleteRoom = (button) => {
+        console.log(button.value);
+        modal_input = document.querySelector("#delete-room");
+        modal_input.value = button.value;
+    };
+
+    document.querySelector(".see-all-messages").addEventListener("click", (event) => {
+        const room_element = document.querySelector(".room-name");
+        const room = room_element.textContent;
+        window.open("/room="+room, '_blank').focus();
+    });
+
+
+</script>
+{% endblock %}

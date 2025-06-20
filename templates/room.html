@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Room - {{roomname}}
+{% endblock %}
+
+{% block main %}
+
+
+
+    {% for message in messages %}
+        {% if message[2] == session["user_id"]|string %}
+
+            <div class="d-flex flex-row justify-content-end mb-4">
+                        <img src="https://ui-avatars.com/api/?name={{message[5]}}&background=random&color=fff"
+                            alt="avatar 1" style="width: 45px; height: 100%; border-radius: 50%;">
+                            <p class="text-muted small datetime-element" style="font-size: 9px !important;">{{message[4] + " +00:00"}}</p>
+                        <div class="p-3 ms-3" style="border-radius: 15px; background-color: rgba(57, 192, 237,.2);">
+                            <p class="small mb-0"><strong>{{message[5]}}: </strong>{{message[1]}}</p>
+                        </div>
+                    </div>
+
+        {% else %}
+
+                    <div class="d-flex flex-row justify-content-start mb-4">
+              <div class="p-3 me-3 border bg-body-tertiary" style="border-radius: 15px;">
+                <p class="small mb-0"><strong>{{message[5]}}: </strong>{{message[1]}}</p>
+                </div>
+                <p class="text-muted small datetime-element" style="font-size: 9px !important;">{{message[4] + " +00:00"}}</p>
+              <img src="https://ui-avatars.com/api/?name={{message[5]}}&background=random&color=fff"
+                alt="avatar 1" style="width: 45px; height: 100%; border-radius: 50%;">
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    <script>
+        document.querySelectorAll(".datetime-element").forEach(element => {
+            let datetime = element.textContent;
+            datetime = new Date(datetime).toLocaleString();
+            element.textContent = datetime;
+        });
+    </script>
+
+{% endblock %}
